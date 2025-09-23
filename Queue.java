@@ -1,0 +1,385 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
+ */
+
+// package newproject;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
+import java.util.LinkedList;
+import javax.swing.border.EmptyBorder;
+
+/* ------------------ Select Queue  ------------------ */
+public class Queue {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Queue Selector");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(500, 700);
+            frame.setLayout(new BorderLayout());
+
+            // เลือก Singly หรือ Doubly
+            String[] options = {"Singly Circular Queue", "Doubly Circular Queue"};
+            String choice = (String) JOptionPane.showInputDialog(
+                    frame,
+                    "CURCULAR QUEUE :",
+                    "Queue Selector",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+
+            if (choice == null) {
+                System.exit(0); // ถ้ากด Cancel ออกเลย
+            }
+
+            if ("Singly Circular Queue".equals(choice)) {
+                SinglyCircularQueueUI singlyQueuePanel = new SinglyCircularQueueUI();
+                frame.add(singlyQueuePanel, BorderLayout.CENTER);
+            } else if ("Doubly Circular Queue".equals(choice)) {
+                DoublyCircularQueueUI doublyQueuePanel = new DoublyCircularQueueUI();
+                frame.add(doublyQueuePanel, BorderLayout.CENTER);
+            }
+
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
+    }
+}
+
+/* ------------------ Circle Panel ------------------ */
+class Circle extends JPanel {
+    private final int numSegments = 8;
+    private final String[] values;
+    
+    public Circle(String[] values) {
+        this.values = values;
+    }
+
+
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int width = getWidth();
+        int height = getHeight();
+        int centerX = width / 2;
+        int centerY = height / 2;
+
+        int outerRadius = 150;
+        int innerRadius = 80;
+
+        double angleStep = 360.0 / numSegments;
+
+        for (int i = 0; i < numSegments; i++) {
+            double startAngle = i * angleStep;
+
+            Arc2D outer = new Arc2D.Double(
+                    centerX - outerRadius, centerY - outerRadius,
+                    outerRadius * 2, outerRadius * 2,
+                    startAngle, angleStep, Arc2D.PIE
+            );
+
+            Arc2D inner = new Arc2D.Double(
+                    centerX - innerRadius, centerY - innerRadius,
+                    innerRadius * 2, innerRadius * 2,
+                    startAngle, angleStep, Arc2D.PIE
+            );
+
+            Area sector = new Area(outer);
+            sector.subtract(new Area(inner));
+
+            g2d.setColor(new Color(100, 180, 255));
+            g2d.fill(sector);
+
+            g2d.setColor(Color.WHITE);
+            g2d.draw(sector);
+
+            // Label
+            double midAngle = Math.toRadians(startAngle + angleStep / 2);
+            int labelRadius = (outerRadius + innerRadius) / 2;
+            int labelX = (int) (centerX + labelRadius * Math.cos(midAngle));
+            int labelY = (int) (centerY - labelRadius * Math.sin(midAngle));
+
+            g2d.setColor(Color.BLACK);
+            g2d.setFont(new Font("Arial", Font.BOLD, 16));
+            String label = values[i] == null ? "" : values[i];
+            FontMetrics fm = g2d.getFontMetrics();
+            int labelWidth = fm.stringWidth(label);
+            int labelHeight = fm.getAscent();
+            g2d.drawString(label, labelX - labelWidth / 2, labelY + labelHeight / 2);
+            
+            int numOrbit = outerRadius + 10;
+            int numX = (int) (centerX + numOrbit * Math.cos(midAngle));
+            int numY = (int) (centerY - numOrbit * Math.sin(midAngle));
+            String numLabel = String.valueOf(i);
+            int numW = fm.stringWidth(numLabel);
+            int numH = fm.getAscent();
+            g2d.drawString(numLabel, numX - numW / 2, numY + numH / 2);
+        }
+    }
+}
+
+/* ------------------ Singly Circular Queue ------------------ */
+class SinglyCircularQueueUI extends JPanel {
+    private final int SIZE = 8;
+    private final String[] values = new String[SIZE];
+    private int front = -1, rear = -1;
+    private final LinkedList<String> dequeuedList = new LinkedList<>();
+    private final Circle circlePanel;
+
+    public SinglyCircularQueueUI() {
+        setLayout(new BorderLayout());
+
+        JLabel label = new JLabel("Singly Circular Queue", JLabel.CENTER);
+        label.setFont(new Font("Monospaced", Font.BOLD, 30));
+        label.setBorder(new EmptyBorder(30,0,0,0));
+        add(label, BorderLayout.NORTH);
+
+        circlePanel = new Circle(values);
+        add(circlePanel, BorderLayout.CENTER);
+
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.Y_AXIS));
+        southPanel.setBorder(new EmptyBorder(0, 0, 50, 0));
+
+        JTextField tf = new JTextField(20);
+        tf.setFont(new Font("DialogInput", Font.BOLD, 20));
+        tf.setMaximumSize(new Dimension(250, 40));
+        tf.setAlignmentX(Component.CENTER_ALIGNMENT);
+        southPanel.add(tf);
+
+        southPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JButton enqueueBtn = new JButton("Enqueue");
+        JButton dequeueBtn = new JButton("Dequeue");
+        buttonPanel.add(enqueueBtn);
+        buttonPanel.add(dequeueBtn);
+
+        JPanel buttonPane2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JButton showBtn = new JButton("Show Dequeued");
+        buttonPane2.add(showBtn);
+        
+        southPanel.add(buttonPanel);
+        southPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        southPanel.add(buttonPane2);
+        add(southPanel, BorderLayout.SOUTH);
+
+        // Actions
+        enqueueBtn.addActionListener(e -> {
+            String text = tf.getText().trim();
+            if (!text.isEmpty()) {
+                enqueue(text);
+                tf.setText("");
+                repaint();
+            }
+        });
+
+        dequeueBtn.addActionListener(e -> {
+            String val = dequeue();
+            if (val != null) {
+                dequeuedList.add(val);
+                repaint();
+            }
+        });
+
+        showBtn.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Dequeued values: " + dequeuedList);
+        });
+    }
+
+    private void enqueue(String val) {
+        if ((front == 0 && rear == SIZE - 1) || (rear + 1) % SIZE == front) {
+            JOptionPane.showMessageDialog(this, "Queue is full!");
+            return;
+        }
+        if (front == -1) {
+            front = rear = 0;
+        } else {
+            rear = (rear + 1) % SIZE;
+        }
+        values[rear] = val;
+    }
+
+    private String dequeue() {
+        if (front == -1) {
+            JOptionPane.showMessageDialog(this, "Queue is empty!");
+            return null;
+        }
+        String val = values[front];
+        values[front] = null;
+        if (front == rear) {
+            front = rear = -1;
+        } else {
+            front = (front + 1) % SIZE;
+        }
+        return val;
+    }
+}
+
+/* ------------------ Doubly Circular Queue ------------------ */
+class DoublyCircularQueueUI extends JPanel {
+    private final int SIZE = 8;
+    private final String[] values = new String[SIZE];
+    private int front = -1, rear = -1;
+    private final LinkedList<String> dequeuedList = new LinkedList<>();
+    private final Circle circlePanel;
+
+    public DoublyCircularQueueUI() {
+        setLayout(new BorderLayout());
+
+        JLabel label = new JLabel("Doubly Circular Queue", JLabel.CENTER);
+        label.setFont(new Font("Monospaced", Font.BOLD, 30));
+        label.setBorder(new EmptyBorder(30,0,0,0));
+        add(label, BorderLayout.NORTH);
+
+        circlePanel = new Circle(values);
+        add(circlePanel, BorderLayout.CENTER);
+
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.Y_AXIS));
+        southPanel.setBorder(new EmptyBorder(0, 0, 35, 0));
+
+        JTextField tf = new JTextField(20);
+        tf.setFont(new Font("DialogInput", Font.PLAIN, 20));
+        tf.setMaximumSize(new Dimension(250, 40));
+        tf.setAlignmentX(Component.CENTER_ALIGNMENT);
+        southPanel.add(tf);
+
+        southPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JButton enqueueFrontBtn = new JButton("Enqueue Front");
+        JButton enqueueRearBtn = new JButton("Enqueue Rear");
+        buttonPanel.add(enqueueFrontBtn);
+        buttonPanel.add(enqueueRearBtn);
+
+        JPanel buttonPane2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JButton dequeueFrontBtn = new JButton("Dequeue Front");
+        JButton dequeueRearBtn = new JButton("Dequeue Rear");
+        buttonPane2.add(dequeueFrontBtn);
+        buttonPane2.add(dequeueRearBtn);
+
+        JPanel buttonPane3 = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JButton showBtn = new JButton("Show Dequeued");
+        buttonPane3.add(showBtn);
+
+        southPanel.add(buttonPanel);
+        southPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        southPanel.add(buttonPane2);
+        southPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        southPanel.add(buttonPane3);
+        add(southPanel, BorderLayout.SOUTH);
+
+        // Actions
+        enqueueFrontBtn.addActionListener(e -> {
+            String text = tf.getText().trim();
+            if (!text.isEmpty()) {
+                enqueueFront(text);
+                tf.setText("");
+                repaint();
+            }
+        });
+
+        enqueueRearBtn.addActionListener(e -> {
+            String text = tf.getText().trim();
+            if (!text.isEmpty()) {
+                enqueueRear(text);
+                tf.setText("");
+                repaint();
+            }
+        });
+
+        dequeueFrontBtn.addActionListener(e -> {
+            String val = dequeueFront();
+            if (val != null) {
+                dequeuedList.add(val);
+                repaint();
+            }
+        });
+
+        dequeueRearBtn.addActionListener(e -> {
+            String val = dequeueRear();
+            if (val != null) {
+                dequeuedList.add(val);
+                repaint();
+            }
+        });
+
+        showBtn.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Dequeued values: " + dequeuedList);
+        });
+    }
+
+    private boolean isFull() {
+        return (front == 0 && rear == SIZE - 1) || (rear + 1) % SIZE == front;
+    }
+
+    private boolean isEmpty() {
+        return front == -1;
+    }
+
+    private void enqueueFront(String val) {
+        if (isFull()) {
+            JOptionPane.showMessageDialog(this, "Queue is full!");
+            return;
+        }
+        if (isEmpty()) {
+            front = rear = 0;
+        } else {
+            front = (front - 1 + SIZE) % SIZE;
+        }
+        values[front] = val;
+    }
+
+    private void enqueueRear(String val) {
+        if (isFull()) {
+            JOptionPane.showMessageDialog(this, "Queue is full!");
+            return;
+        }
+        if (isEmpty()) {
+            front = rear = 0;
+        } else {
+            rear = (rear + 1) % SIZE;
+        }
+        values[rear] = val;
+    }
+
+    private String dequeueFront() {
+        if (isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Queue is empty!");
+            return null;
+        }
+        String val = values[front];
+        values[front] = null;
+        if (front == rear) {
+            front = rear = -1;
+        } else {
+            front = (front + 1) % SIZE;
+        }
+        return val;
+    }
+
+    private String dequeueRear() {
+        if (isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Queue is empty!");
+            return null;
+        }
+        String val = values[rear];
+        values[rear] = null;
+        if (front == rear) {
+            front = rear = -1;
+        } else {
+            rear = (rear - 1 + SIZE) % SIZE;
+        }
+        return val;
+    }
+}
+
